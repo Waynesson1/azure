@@ -33,10 +33,10 @@ html, body {
   width: var(--panel-w);
   border-radius: 10px;
   overflow: hidden;
-  /* No backdrop-filter: over a transparent DUI surface CEF renders it as an
-     opaque black box, so the panel gets its own solid-ish tint instead. */
-  background: rgba(9, 12, 19, 0.94);
-  border: 1px solid rgba(0, 132, 255, 0.28);
+  /* Flat transparency only. No backdrop-filter (CEF renders it as a black
+     box) and no glow - just a see-through dark tint like a real menu. */
+  background: rgba(6, 9, 14, 0.55);
+  border: 1px solid rgba(0, 132, 255, 0.30);
   opacity: 0;
   transform: translateY(-10px) scale(0.985);
   transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.25,1);
@@ -48,66 +48,27 @@ html, body {
 
 #banner {
   position: relative;
-  height: 108px;
+  height: 104px;
   overflow: hidden;
-  background: #05070c;
+  background: #0a0d14 center / cover no-repeat;   /* image set by JS */
 }
 
-/* slow drifting aurora blobs */
-#banner .aurora {
-  position: absolute; inset: -40%;
-  background:
-    radial-gradient(38% 55% at 28% 45%, rgba(0,132,255,.55), transparent 70%),
-    radial-gradient(32% 48% at 72% 60%, rgba(0,214,255,.32), transparent 70%),
-    radial-gradient(45% 60% at 50% 20%, rgba(0,72,190,.42), transparent 72%);
-  filter: blur(14px);
-  animation: drift 14s ease-in-out infinite alternate;
-}
-@keyframes drift {
-  0%   { transform: translate3d(-6%, -3%, 0) scale(1.05); }
-  100% { transform: translate3d( 6%,  4%, 0) scale(1.18); }
-}
-
-/* vignette so the wordmark always reads */
-#banner .veil {
-  position: absolute; inset: 0;
-  background:
-    linear-gradient(180deg, rgba(5,7,12,.25) 0%, rgba(5,7,12,.10) 40%, rgba(5,7,12,.92) 100%),
-    radial-gradient(75% 120% at 50% 40%, transparent 30%, rgba(5,7,12,.85) 100%);
-}
-
-/* sweeping sheen */
-#banner .sheen {
-  position: absolute; top: 0; bottom: 0; width: 45%;
-  background: linear-gradient(100deg, transparent, rgba(190,230,255,.13), transparent);
-  animation: sweep 6.5s ease-in-out infinite;
-}
-@keyframes sweep {
-  0%, 65% { transform: translateX(-140%); }
-  100%    { transform: translateX(320%); }
-}
-
+/* Wordmark shown only when there is no banner image. Flat, no glow. */
 #wordmark {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 46px;
+  font-size: 44px;
   font-weight: 800;
   letter-spacing: 10px;
   text-indent: 10px;
   color: #fff;
-  text-shadow:
-    0 0 6px  rgba(255,255,255,.65),
-    0 0 18px rgba(0,150,255,.95),
-    0 0 38px rgba(0,132,255,.75),
-    0 0 70px rgba(0,110,255,.45);
-  animation: pulse 3.4s ease-in-out infinite;
 }
-@keyframes pulse { 50% { opacity: .90; } }
+#banner.has-img #wordmark { display: none; }
 
+/* thin flat accent line under the banner */
 #banner .edge {
   position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent-deep), var(--accent-lit), var(--accent-deep));
-  box-shadow: 0 0 12px rgba(0,150,255,.85);
+  background: var(--accent);
 }
 
 /* ============================ CRUMB ============================ */
@@ -140,9 +101,8 @@ html, body {
 }
 #tabs .tab.sel {
   color: #fff;
-  background: linear-gradient(180deg, rgba(0,132,255,.85), rgba(0,100,215,.85));
-  border-color: rgba(120,205,255,.5);
-  box-shadow: 0 0 14px rgba(0,132,255,.45);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ============================ LIST ============================= */
@@ -153,14 +113,12 @@ html, body {
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
 }
 
-/* the sliding selection block — this is what makes it feel expensive */
+/* sliding selection block - flat solid accent, no glow */
 #cursor {
   position: absolute; left: 0; right: 0;
   height: var(--row-h);
-  background: linear-gradient(90deg, rgba(0,96,210,.95), rgba(0,146,255,.80) 70%, rgba(0,146,255,.55));
-  border-left: 3px solid var(--accent-lit);
-  box-shadow: 0 0 22px rgba(0,132,255,.45), inset 0 0 20px rgba(255,255,255,.06);
-  transition: transform .16s cubic-bezier(.2,.9,.25,1);
+  background: var(--accent);
+  transition: transform .14s ease;
   will-change: transform;
 }
 
@@ -208,11 +166,10 @@ html, body {
   transition: all .18s cubic-bezier(.2,.9,.25,1);
 }
 .pill.on {
-  background: rgba(0,132,255,.35);
+  background: rgba(0,132,255,.45);
   border-color: rgba(120,205,255,.65);
-  box-shadow: 0 0 12px rgba(0,132,255,.5);
 }
-.pill.on i { left: 18px; background: var(--accent-lit); box-shadow: 0 0 8px var(--accent-lit); }
+.pill.on i { left: 18px; background: var(--accent-lit); }
 .row.sel .pill.on { background: rgba(255,255,255,.28); }
 .row.sel .pill.on i { background: #fff; }
 
@@ -238,7 +195,6 @@ html, body {
 }
 #foot .mark {
   font-weight: 800; font-size: 13px; color: var(--accent-lit);
-  text-shadow: 0 0 10px rgba(0,150,255,.9);
 }
 #foot .keys { margin-left: auto; color: var(--accent-lit); }
 
@@ -270,9 +226,6 @@ html, body {
 
 <div id="panel">
   <div id="banner">
-    <div class="aurora"></div>
-    <div class="veil"></div>
-    <div class="sheen"></div>
     <div id="wordmark">AZURE</div>
     <div class="edge"></div>
   </div>
@@ -324,6 +277,17 @@ var $tabs   = document.getElementById("tabs");
 var $meta   = document.getElementById("meta");
 var $keys   = document.getElementById("keys");
 var $wm     = document.getElementById("wordmark");
+var $banner = document.getElementById("banner");
+
+function applyBanner(url) {
+  if (url && url.length) {
+    $banner.style.backgroundImage = "url('" + url.replace(/'/g, "%27") + "')";
+    $banner.classList.add("has-img");
+  } else {
+    $banner.style.backgroundImage = "";
+    $banner.classList.remove("has-img");
+  }
+}
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -456,6 +420,7 @@ window.addEventListener("message", function (ev) {
         if (d.version) S.version = d.version;
         if (d.keys) S.keys = d.keys;
         if (d.title) $wm.textContent = d.title;
+        if (d.banner !== undefined) applyBanner(d.banner);
         if (d.maxVisible) S.maxVisible = d.maxVisible;
         tickFoot();
         paint();
@@ -478,6 +443,10 @@ window.addEventListener("message", function (ev) {
     case "setIndex":
       S.index = d.index || 0;
       paint();
+      break;
+
+    case "setBanner":
+      applyBanner(d.banner);
       break;
 
     case "showNotification":
