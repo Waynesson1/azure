@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Azure UI</title>
+<style>
+:root {
+  --accent:      #0084ff;
+  --accent-lit:  #6ec8ff;
+  --accent-deep: #0048a0;
+  --ink:         #e7edf5;
+  --ink-dim:     #8491a5;
+  --row-h:       44px;
+  --panel-w:     420px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+  cursor: default;
+}
+
+/* ============================ PANEL ============================ */
+
+#panel {
+  position: absolute;
+  left: 7%; top: 10%;
+  width: var(--panel-w);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(7, 10, 16, 0.72);
+  backdrop-filter: blur(16px) saturate(120%);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 132, 255, 0.20),
+    0 0 40px rgba(0, 132, 255, 0.10);
+  opacity: 0;
+  transform: translateY(-10px) scale(0.985);
+  transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.25,1);
+  pointer-events: none;
+}
+#panel.on { opacity: 1; transform: none; }
+
+/* ============================ BANNER =========================== */
+
+#banner {
+  position: relative;
+  height: 108px;
+  overflow: hidden;
+  background: #05070c;
+}
+
+/* slow drifting aurora blobs */
+#banner .aurora {
+  position: absolute; inset: -40%;
+  background:
+    radial-gradient(38% 55% at 28% 45%, rgba(0,132,255,.55), transparent 70%),
+    radial-gradient(32% 48% at 72% 60%, rgba(0,214,255,.32), transparent 70%),
+    radial-gradient(45% 60% at 50% 20%, rgba(0,72,190,.42), transparent 72%);
+  filter: blur(14px);
+  animation: drift 14s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  0%   { transform: translate3d(-6%, -3%, 0) scale(1.05); }
+  100% { transform: translate3d( 6%,  4%, 0) scale(1.18); }
+}
+
+/* vignette so the wordmark always reads */
+#banner .veil {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5,7,12,.25) 0%, rgba(5,7,12,.10) 40%, rgba(5,7,12,.92) 100%),
+    radial-gradient(75% 120% at 50% 40%, transparent 30%, rgba(5,7,12,.85) 100%);
+}
+
+/* sweeping sheen */
+#banner .sheen {
+  position: absolute; top: 0; bottom: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(190,230,255,.13), transparent);
+  animation: sweep 6.5s ease-in-out infinite;
+}
+@keyframes sweep {
+  0%, 65% { transform: translateX(-140%); }
+  100%    { transform: translateX(320%); }
+}
+
+#wordmark {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  text-indent: 10px;
+  color: #fff;
+  text-shadow:
+    0 0 6px  rgba(255,255,255,.65),
+    0 0 18px rgba(0,150,255,.95),
+    0 0 38px rgba(0,132,255,.75),
+    0 0 70px rgba(0,110,255,.45);
+  animation: pulse 3.4s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: .90; } }
+
+#banner .edge {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent-lit), var(--accent-deep));
+  box-shadow: 0 0 12px rgba(0,150,255,.85);
+}
+
+/* ============================ CRUMB ============================ */
+
+#crumb {
+  display: flex; align-items: center;
+  height: 34px; padding: 0 14px;
+  background: rgba(3, 5, 9, .85);
+  border-bottom: 1px solid rgba(0,132,255,.14);
+  font-size: 12px;
+}
+#path { color: var(--ink); letter-spacing: .3px; }
+#path .sep { color: var(--ink-dim); margin: 0 6px; }
+#path .root { color: var(--ink-dim); }
+#count { margin-left: auto; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+/* ============================ TABS ============================= */
+
+#tabs { display: none; gap: 6px; padding: 8px 12px 2px; }
+#tabs.on { display: flex; }
+#tabs .tab {
+  flex: 1; text-align: center;
+  padding: 6px 0;
+  font-size: 11px; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--ink-dim);
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 5px;
+  transition: all .15s ease;
+}
+#tabs .tab.sel {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0,132,255,.85), rgba(0,100,215,.85));
+  border-color: rgba(120,205,255,.5);
+  box-shadow: 0 0 14px rgba(0,132,255,.45);
+}
+
+/* ============================ LIST ============================= */
+
+#viewport {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+
+/* the sliding selection block — this is what makes it feel expensive */
+#cursor {
+  position: absolute; left: 0; right: 0;
+  height: var(--row-h);
+  background: linear-gradient(90deg, rgba(0,96,210,.95), rgba(0,146,255,.80) 70%, rgba(0,146,255,.55));
+  border-left: 3px solid var(--accent-lit);
+  box-shadow: 0 0 22px rgba(0,132,255,.45), inset 0 0 20px rgba(255,255,255,.06);
+  transition: transform .16s cubic-bezier(.2,.9,.25,1);
+  will-change: transform;
+}
+
+#list { transition: transform .16s cubic-bezier(.2,.9,.25,1); }
+
+.row {
+  position: relative;
+  display: flex; align-items: center;
+  height: var(--row-h);
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--ink);
+  border-bottom: 1px solid rgba(255,255,255,.025);
+  animation: rowIn .22s ease backwards;
+}
+@keyframes rowIn { from { opacity: 0; transform: translateX(-10px); } }
+
+.row.sel   { color: #fff; font-weight: 600; }
+.row.dim   { color: #5d6577; }
+.row.divider {
+  height: 26px; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+  color: var(--ink-dim); background: rgba(255,255,255,.02);
+  border-bottom: 1px solid rgba(0,132,255,.12);
+}
+
+.row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .val   { color: var(--ink-dim); font-size: 13px; margin-left: 10px; }
+.row.sel .val { color: rgba(255,255,255,.92); }
+.row .val .arw { opacity: .45; padding: 0 4px; }
+.row .chev  { color: #55637a; font-size: 15px; }
+.row.sel .chev { color: #fff; }
+
+/* toggle pill */
+.pill {
+  width: 34px; height: 17px; border-radius: 9px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.10);
+  position: relative;
+  transition: all .18s ease;
+}
+.pill i {
+  position: absolute; top: 2px; left: 2px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #7d8899;
+  transition: all .18s cubic-bezier(.2,.9,.25,1);
+}
+.pill.on {
+  background: rgba(0,132,255,.35);
+  border-color: rgba(120,205,255,.65);
+  box-shadow: 0 0 12px rgba(0,132,255,.5);
+}
+.pill.on i { left: 18px; background: var(--accent-lit); box-shadow: 0 0 8px var(--accent-lit); }
+.row.sel .pill.on { background: rgba(255,255,255,.28); }
+.row.sel .pill.on i { background: #fff; }
+
+/* ============================ DESC + FOOT ====================== */
+
+#desc {
+  padding: 9px 14px;
+  font-size: 11.5px; line-height: 1.35;
+  color: var(--ink-dim);
+  background: rgba(3,5,9,.72);
+  border-top: 1px solid rgba(0,132,255,.14);
+  border-left: 3px solid var(--accent-deep);
+  min-height: 32px;
+}
+#desc.empty { display: none; }
+
+#foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px; height: 30px;
+  background: rgba(2,4,8,.92);
+  border-top: 1px solid rgba(0,132,255,.22);
+  font-size: 10.5px; color: var(--ink-dim); letter-spacing: .4px;
+}
+#foot .mark {
+  font-weight: 800; font-size: 13px; color: var(--accent-lit);
+  text-shadow: 0 0 10px rgba(0,150,255,.9);
+}
+#foot .keys { margin-left: auto; color: var(--accent-lit); }
+
+/* ============================ TOASTS =========================== */
+
+#toasts {
+  position: absolute; top: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+  width: 300px;
+}
+.toast {
+  padding: 11px 14px;
+  border-radius: 8px;
+  background: rgba(7,10,16,.92);
+  backdrop-filter: blur(10px);
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 12px 30px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05);
+  animation: toastIn .25s cubic-bezier(.2,.9,.25,1);
+}
+.toast.out { animation: toastOut .25s ease forwards; }
+.toast.error   { border-left-color: #ff4d5e; }
+.toast.success { border-left-color: #29d18c; }
+.toast .t { font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .4px; }
+.toast .d { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+@keyframes toastIn  { from { opacity: 0; transform: translateX(40px); } }
+@keyframes toastOut { to   { opacity: 0; transform: translateX(40px); } }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <div id="banner">
+    <div class="aurora"></div>
+    <div class="veil"></div>
+    <div class="sheen"></div>
+    <div id="wordmark">AZURE</div>
+    <div class="edge"></div>
+  </div>
+
+  <div id="crumb">
+    <div id="path"></div>
+    <div id="count"></div>
+  </div>
+
+  <div id="tabs"></div>
+
+  <div id="viewport">
+    <div id="cursor"></div>
+    <div id="list"></div>
+  </div>
+
+  <div id="desc" class="empty"></div>
+
+  <div id="foot">
+    <span class="mark">A</span>
+    <span id="meta"></span>
+    <span class="keys" id="keys"></span>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+var ROW = 44;
+
+var S = {
+  elements: [],
+  index: 0,
+  scroll: 0,
+  maxVisible: 10,
+  version: "1.0.0",
+  keys: "F5 / F7",
+  bootedAt: Date.now()
+};
+
+var $panel  = document.getElementById("panel");
+var $list   = document.getElementById("list");
+var $cursor = document.getElementById("cursor");
+var $view   = document.getElementById("viewport");
+var $path   = document.getElementById("path");
+var $count  = document.getElementById("count");
+var $desc   = document.getElementById("desc");
+var $tabs   = document.getElementById("tabs");
+var $meta   = document.getElementById("meta");
+var $keys   = document.getElementById("keys");
+var $wm     = document.getElementById("wordmark");
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+/* ---------- value rendering per item type ---------- */
+function rightSide(el) {
+  var t = el.type;
+  if (t === "checkbox" || t === "toggle") {
+    return '<div class="pill' + (el.checked ? " on" : "") + '"><i></i></div>';
+  }
+  if (t === "subMenu" || t === "submenu") {
+    return '<div class="chev">&#8250;</div>';
+  }
+  if (el.value !== undefined && el.value !== null && el.value !== "") {
+    if (t === "list" || t === "scrollable" || t === "slider") {
+      return '<div class="val"><span class="arw">&#8249;</span>' + esc(el.value) +
+             '<span class="arw">&#8250;</span></div>';
+    }
+    return '<div class="val">' + esc(el.value) + "</div>";
+  }
+  return "";
+}
+
+function buildRows() {
+  var html = "";
+  for (var i = 0; i < S.elements.length; i++) {
+    var el = S.elements[i];
+    if (el.type === "divider") {
+      html += '<div class="row divider" style="animation-delay:' + (i * 12) + 'ms">' +
+              '<div class="label">' + esc(el.label) + "</div></div>";
+      continue;
+    }
+    var cls = "row" + (el.disabled || el.type === "label" ? " dim" : "");
+    html += '<div class="' + cls + '" style="animation-delay:' + (i * 12) + 'ms">' +
+            '<div class="label">' + esc(el.label) + "</div>" +
+            rightSide(el) + "</div>";
+  }
+  $list.innerHTML = html;
+  $view.style.height = (Math.min(S.elements.length || 1, S.maxVisible) * ROW) + "px";
+}
+
+function paint() {
+  var rows = $list.children;
+  for (var i = 0; i < rows.length; i++) {
+    if (i === S.index) rows[i].classList.add("sel");
+    else rows[i].classList.remove("sel");
+  }
+
+  // keep the cursor inside the window
+  if (S.index < S.scroll) S.scroll = S.index;
+  if (S.index > S.scroll + S.maxVisible - 1) S.scroll = S.index - S.maxVisible + 1;
+  if (S.elements.length <= S.maxVisible) S.scroll = 0;
+
+  $list.style.transform   = "translateY(" + (-S.scroll * ROW) + "px)";
+  $cursor.style.transform = "translateY(" + ((S.index - S.scroll) * ROW) + "px)";
+  $cursor.style.display   = S.elements.length ? "block" : "none";
+
+  var cur = S.elements[S.index];
+  if (cur && cur.desc) {
+    $desc.textContent = cur.desc;
+    $desc.classList.remove("empty");
+  } else {
+    $desc.classList.add("empty");
+  }
+
+  $count.textContent = S.elements.length ? (S.index + 1) + " / " + S.elements.length : "";
+}
+
+function setPath(path) {
+  if (!path || !path.length) return;
+  var out = '<span class="root">' + esc(path[0]) + "</span>";
+  for (var i = 1; i < path.length; i++) {
+    out += '<span class="sep">&#8250;</span>' + esc(path[i]);
+  }
+  $path.innerHTML = out;
+}
+
+function setTabs(cats, idx) {
+  if (!cats || !cats.length) { $tabs.classList.remove("on"); return; }
+  var html = "";
+  for (var i = 0; i < cats.length; i++) {
+    html += '<div class="tab' + (i === idx ? " sel" : "") + '">' + esc(cats[i]) + "</div>";
+  }
+  $tabs.innerHTML = html;
+  $tabs.classList.add("on");
+}
+
+function uptime() {
+  var s = Math.floor((Date.now() - S.bootedAt) / 1000);
+  if (s < 60) return s + "s";
+  if (s < 3600) return Math.floor(s / 60) + "m";
+  return Math.floor(s / 3600) + "h";
+}
+function tickFoot() {
+  $meta.textContent = "|  v" + S.version + "  |  " + uptime();
+  $keys.textContent = S.keys;
+}
+setInterval(tickFoot, 1000);
+
+/* ---------- toasts ---------- */
+function toast(type, title, desc, duration) {
+  var box = document.getElementById("toasts");
+  var n = document.createElement("div");
+  n.className = "toast " + (type || "info");
+  n.innerHTML = '<div class="t">' + esc(title) + "</div>" +
+                (desc ? '<div class="d">' + esc(desc) + "</div>" : "");
+  box.appendChild(n);
+  setTimeout(function () {
+    n.classList.add("out");
+    setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 260);
+  }, duration || 3200);
+}
+
+/* ---------- message pump from Lua ---------- */
+window.addEventListener("message", function (ev) {
+  var d = ev.data;
+  if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { return; } }
+  if (!d || !d.action) return;
+
+  switch (d.action) {
+    case "showUI":
+      if (d.visible) {
+        if (d.elements) { S.elements = d.elements; S.scroll = 0; buildRows(); }
+        if (d.index !== undefined) S.index = d.index;
+        if (d.path) setPath(d.path);
+        setTabs(d.categories, d.categoryIndex || 0);
+        if (d.version) S.version = d.version;
+        if (d.keys) S.keys = d.keys;
+        if (d.title) $wm.textContent = d.title;
+        if (d.maxVisible) S.maxVisible = d.maxVisible;
+        tickFoot();
+        paint();
+        $panel.classList.add("on");
+      } else {
+        $panel.classList.remove("on");
+      }
+      break;
+
+    case "updateElements":
+      S.elements = d.elements || [];
+      if (d.index !== undefined) S.index = d.index;
+      if (d.resetScroll) S.scroll = 0;
+      if (d.path) setPath(d.path);
+      setTabs(d.categories, d.categoryIndex || 0);
+      buildRows();
+      paint();
+      break;
+
+    case "setIndex":
+      S.index = d.index || 0;
+      paint();
+      break;
+
+    case "showNotification":
+      toast(d.type, d.title, d.desc, d.duration);
+      break;
+
+    case "setPosition":
+      $panel.style.left = d.x + "%";
+      $panel.style.top  = d.y + "%";
+      break;
+  }
+});
+
+tickFoot();
+</script>
+</body>
+</html>
