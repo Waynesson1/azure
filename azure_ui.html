@@ -263,7 +263,7 @@ var ROW = 44;
 var S = {
   elements: [],
   index: 0,
-  scroll: 0,
+  scrollPx: 0,
   maxVisible: 10,
   version: "1.0.0",
   keys: "F5 / F7",
@@ -333,7 +333,15 @@ function buildRows() {
             rightSide(el) + "</div>";
   }
   $list.innerHTML = html;
-  $view.style.height = (Math.min(S.elements.length || 1, S.maxVisible) * ROW) + "px";
+
+  // Viewport height = actual height of the first N rows (dividers are shorter
+  // than options, so counting rows x ROW would be wrong).
+  var n = Math.min(S.elements.length || 1, S.maxVisible);
+  var h = 0;
+  for (var k = 0; k < n && k < $list.children.length; k++) {
+    h += $list.children[k].offsetHeight;
+  }
+  $view.style.height = (h || ROW) + "px";
 }
 
 function paint() {
@@ -343,14 +351,25 @@ function paint() {
     else rows[i].classList.remove("sel");
   }
 
-  // keep the cursor inside the window
-  if (S.index < S.scroll) S.scroll = S.index;
-  if (S.index > S.scroll + S.maxVisible - 1) S.scroll = S.index - S.maxVisible + 1;
-  if (S.elements.length <= S.maxVisible) S.scroll = 0;
+  var sel = rows[S.index];
+  if (!sel) { $cursor.style.display = "none"; }
+  else {
+    // Scroll (in real pixels) so the selected row stays inside the viewport.
+    var viewH = $view.clientHeight;
+    var top   = sel.offsetTop;
+    var bot   = top + sel.offsetHeight;
+    if (top < S.scrollPx)          S.scrollPx = top;
+    if (bot > S.scrollPx + viewH)  S.scrollPx = bot - viewH;
+    var maxScroll = Math.max(0, $list.scrollHeight - viewH);
+    if (S.scrollPx > maxScroll)    S.scrollPx = maxScroll;
+    if (S.scrollPx < 0)            S.scrollPx = 0;
 
-  $list.style.transform   = "translateY(" + (-S.scroll * ROW) + "px)";
-  $cursor.style.transform = "translateY(" + ((S.index - S.scroll) * ROW) + "px)";
-  $cursor.style.display   = S.elements.length ? "block" : "none";
+    // Cursor tracks the row's true position and height.
+    $list.style.transform   = "translateY(" + (-S.scrollPx) + "px)";
+    $cursor.style.transform = "translateY(" + (top - S.scrollPx) + "px)";
+    $cursor.style.height    = sel.offsetHeight + "px";
+    $cursor.style.display   = "block";
+  }
 
   var cur = S.elements[S.index];
   if (cur && cur.desc) {
@@ -417,7 +436,7 @@ window.addEventListener("message", function (ev) {
   switch (d.action) {
     case "showUI":
       if (d.visible) {
-        if (d.elements) { S.elements = d.elements; S.scroll = 0; buildRows(); }
+        if (d.elements) { S.elements = d.elements; S.scrollPx = 0; buildRows(); }
         if (d.index !== undefined) S.index = d.index;
         if (d.path) setPath(d.path);
         setTabs(d.categories, d.categoryIndex || 0);
@@ -437,7 +456,7 @@ window.addEventListener("message", function (ev) {
     case "updateElements":
       S.elements = d.elements || [];
       if (d.index !== undefined) S.index = d.index;
-      if (d.resetScroll) S.scroll = 0;
+      if (d.resetScroll) S.scrollPx = 0;
       if (d.path) setPath(d.path);
       setTabs(d.categories, d.categoryIndex || 0);
       buildRows();
