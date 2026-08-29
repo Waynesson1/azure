@@ -270,7 +270,7 @@ html, body {
 /* centered feature scroller (plain white text, no outline, like the ref) */
 .FCWrapper {
   position: absolute;
-  left: 50%; bottom: 40vh;
+  left: 50%; bottom: 44vh;
   transform: translateX(-50%);
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start;
@@ -340,6 +340,25 @@ html, body {
   letter-spacing: .3px; text-align: center; min-height: 14px;
   text-shadow: 0 1px 5px rgba(0,0,0,.8);
 }
+
+/* ============================ HEALTH HUD ====================== */
+
+#healthhud {
+  position: fixed; left: 24px; bottom: 24px;
+  width: 190px; display: none;
+}
+#healthhud.on { display: block; }
+#healthhud .hrow { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+#healthhud .hlabel {
+  font-size: 10px; font-weight: 700; width: 16px; color: var(--ink-dim);
+  text-shadow: 0 1px 4px rgba(0,0,0,.8);
+}
+#healthhud .htrack {
+  flex: 1; height: 8px; border-radius: 4px; overflow: hidden;
+  background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.10);
+}
+#healthhud .hfill { height: 100%; transition: width .2s ease, background .2s ease; }
+#healthhud .hfill.armor { background: linear-gradient(90deg, #0084ff, #6ec8ff); }
 
 /* ============================ TOASTS =========================== */
 
@@ -415,6 +434,11 @@ html, body {
 
 <div id="talkers"></div>
 
+<div id="healthhud">
+  <div class="hrow"><span class="hlabel">HP</span><div class="htrack"><div class="hfill" id="hp-fill"></div></div></div>
+  <div class="hrow"><span class="hlabel">AR</span><div class="htrack"><div class="hfill armor" id="ar-fill"></div></div></div>
+</div>
+
 <script>
 var ROW = 44;
 
@@ -449,6 +473,22 @@ var ectx     = $esp.getContext("2d");
 var $loader  = document.getElementById("loader");
 var $lfill   = document.getElementById("lfill");
 var $ltext   = document.getElementById("ltext");
+var $hud     = document.getElementById("healthhud");
+var $hpFill  = document.getElementById("hp-fill");
+var $arFill  = document.getElementById("ar-fill");
+
+function setHealth(d) {
+  if (d.hide) { $hud.classList.remove("on"); return; }
+  var hp = Math.max(0, Math.min(100, d.hp || 0));
+  var ar = Math.max(0, Math.min(100, d.armor || 0));
+  $hpFill.style.width = hp + "%";
+  $arFill.style.width = ar + "%";
+  $hpFill.style.background = hp > 50
+    ? "linear-gradient(90deg,#29d18c,#7be0b0)"
+    : (hp > 25 ? "linear-gradient(90deg,#e0b020,#f0d060)"
+               : "linear-gradient(90deg,#ff4d5e,#ff8a8a)");
+  $hud.classList.add("on");
+}
 
 function sizeEsp() { $esp.width = window.innerWidth; $esp.height = window.innerHeight; }
 window.addEventListener("resize", sizeEsp);
@@ -504,6 +544,10 @@ function drawEsp(players, flags) {
     if (flags.names) {
       ectx.font = "600 12px Inter, sans-serif"; ectx.fillStyle = "#fff";
       espText(p.name, cx, y - 5);
+    }
+    if (p.admin) {
+      ectx.font = "700 11px Inter, sans-serif"; ectx.fillStyle = "#ffb020";
+      espText("ADMIN", cx, y - (flags.names ? 19 : 5));
     }
     if (flags.distance) {
       ectx.font = "11px Inter, sans-serif"; ectx.fillStyle = "rgba(180,212,255,.95)";
@@ -745,6 +789,10 @@ window.addEventListener("message", function (ev) {
 
     case "esp":
       drawEsp(d.players, d.flags || {});
+      break;
+
+    case "health":
+      setHealth(d);
       break;
 
     case "loader":
