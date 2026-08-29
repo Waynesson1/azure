@@ -541,6 +541,14 @@ function drawEsp(players, flags) {
       ectx.lineWidth = 3; ectx.strokeStyle = "rgba(0,0,0,.6)"; ectx.strokeRect(x, y, w, h);
       ectx.lineWidth = 1.4; ectx.strokeStyle = "#0084ff"; ectx.strokeRect(x, y, w, h);
     }
+    if (flags.health && p.hp !== undefined && p.hp !== null) {
+      var bw = 3, bx = x - bw - 3;               // just left of the box
+      var fillH = h * (p.hp / 100);
+      ectx.fillStyle = "rgba(0,0,0,.6)";          // background track
+      ectx.fillRect(bx - 1, y - 1, bw + 2, h + 2);
+      ectx.fillStyle = p.hp > 50 ? "#29d18c" : (p.hp > 25 ? "#e0b020" : "#ff4d5e");
+      ectx.fillRect(bx, y + (h - fillH), bw, fillH);   // fills bottom-up
+    }
     if (flags.names) {
       ectx.font = "600 12px Inter, sans-serif"; ectx.fillStyle = "#fff";
       espText(p.name, cx, y - 5);
