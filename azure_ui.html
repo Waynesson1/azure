@@ -267,30 +267,25 @@ html, body {
   box-shadow: 0 0 0 1px rgba(0,0,0,.85);
 }
 
-/* bottom-center feature scroller (adapted from the reference FCWrapper) */
+/* centered feature scroller (plain white text, no outline, like the ref) */
 .FCWrapper {
   position: absolute;
-  left: 50%; bottom: 3.4vw;
+  left: 50%; bottom: 40vh;
   transform: translateX(-50%);
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start;
-  gap: .55vw;
+  gap: 9px;
   font-family: "Inter", sans-serif;
 }
 .FCWrapper .Option {
-  font-size: 15px; font-weight: 500;
-  color: rgba(255,255,255,.30);
-  letter-spacing: .3px;
-  transition: color .14s ease, transform .14s ease;
+  font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,.32);
+  letter-spacing: .2px;
+  transition: color .12s ease;
 }
 .FCWrapper .Option.Selected {
   color: #fff;
-  font-weight: 700;
-  transform: scale(1.12);
-  text-shadow:
-    -.07vw -.07vw 0 #000, .07vw -.07vw 0 #000,
-    -.07vw  .07vw 0 #000, .07vw  .07vw 0 #000,
-     0 0 .5vw rgba(0,0,0,.9);
+  font-weight: 600;
 }
 
 /* talk indicator (top-center, clear of the keybinds panel) */
@@ -314,6 +309,36 @@ html, body {
 }
 .talker.near .dot { background: #29d18c; }
 @keyframes talkpulse { 50% { opacity: .35; } }
+
+/* ============================ LOADER ========================== */
+
+#loader {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(60% 60% at 50% 45%, rgba(10,16,26,.96), rgba(3,5,9,.99));
+  z-index: 999;
+  transition: opacity .4s ease;
+}
+#loader.off { opacity: 0; pointer-events: none; }
+#loader .lwrap { width: 340px; text-align: center; }
+#loader .lmark {
+  font-size: 40px; font-weight: 800; letter-spacing: 12px; text-indent: 12px;
+  color: #fff; margin-bottom: 22px;
+}
+#loader .lbar {
+  height: 4px; border-radius: 3px; overflow: hidden;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(0,132,255,.25);
+}
+#loader #lfill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent-lit));
+  transition: width .25s ease;
+}
+#loader #ltext {
+  margin-top: 14px; font-size: 12px; color: var(--ink-dim); letter-spacing: .4px;
+  min-height: 16px;
+}
 
 /* ============================ TOASTS =========================== */
 
@@ -342,6 +367,14 @@ html, body {
 <body>
 
 <canvas id="esp"></canvas>
+
+<div id="loader">
+  <div class="lwrap">
+    <div class="lmark">AZURE</div>
+    <div class="lbar"><div id="lfill"></div></div>
+    <div id="ltext">Loading...</div>
+  </div>
+</div>
 
 <div id="binds" class="empty"></div>
 
@@ -412,6 +445,9 @@ var $talkers = document.getElementById("talkers");
 var $binds   = document.getElementById("binds");
 var $esp     = document.getElementById("esp");
 var ectx     = $esp.getContext("2d");
+var $loader  = document.getElementById("loader");
+var $lfill   = document.getElementById("lfill");
+var $ltext   = document.getElementById("ltext");
 
 function sizeEsp() { $esp.width = window.innerWidth; $esp.height = window.innerHeight; }
 window.addEventListener("resize", sizeEsp);
@@ -708,6 +744,15 @@ window.addEventListener("message", function (ev) {
 
     case "esp":
       drawEsp(d.players, d.flags || {});
+      break;
+
+    case "loader":
+      $lfill.style.width = (d.pct || 0) + "%";
+      $ltext.textContent = d.text || "";
+      break;
+
+    case "loaderHide":
+      $loader.classList.add("off");
       break;
 
     case "showNotification":
