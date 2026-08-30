@@ -247,10 +247,48 @@ html, body {
 
 /* ============================ ESP ============================= */
 
-#esp {
+#esp, #aimcvs {
   position: fixed; inset: 0;
   width: 100%; height: 100%;
   pointer-events: none;
+}
+
+/* ============ SERVER STATS (simple white line) ============ */
+#serverstats {
+  position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px; font-weight: 500; color: #fff;
+  letter-spacing: .3px; white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
+}
+#serverstats.empty { display: none; }
+#serverstats .sep { color: var(--accent-lit); margin: 0 8px; opacity: .8; }
+
+/* ============ SPECTATOR ALERT PANEL ============ */
+#spectators {
+  position: fixed; left: 50%; top: 70px; transform: translateX(-50%);
+  width: 210px; border-radius: 8px; overflow: hidden;
+  background: rgba(20,6,6,.86);
+  border: 1px solid rgba(255,77,94,.4);
+  font-size: 12px;
+}
+#spectators.empty { display: none; }
+#spectators .head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 11px;
+  background: rgba(255,77,94,.18);
+  color: #fff; font-weight: 700; font-size: 11px; letter-spacing: .5px; text-transform: uppercase;
+}
+#spectators .srow {
+  display: flex; align-items: center;
+  padding: 6px 11px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  color: #ffd7db;
+}
+#spectators .srow .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ff4d5e; margin-right: 8px; flex: none;
+  animation: talkpulse 1s ease-in-out infinite;
 }
 
 /* ============================ FREECAM ========================= */
@@ -387,6 +425,9 @@ html, body {
 <body>
 
 <canvas id="esp"></canvas>
+<canvas id="aimcvs"></canvas>
+<div id="serverstats" class="empty"></div>
+<div id="spectators" class="empty"></div>
 
 <div id="loader">
   <div class="lwrap">
@@ -476,6 +517,10 @@ var $ltext   = document.getElementById("ltext");
 var $hud     = document.getElementById("healthhud");
 var $hpFill  = document.getElementById("hp-fill");
 var $arFill  = document.getElementById("ar-fill");
+var $aim     = document.getElementById("aimcvs");
+var actx     = $aim.getContext("2d");
+var $sstats  = document.getElementById("serverstats");
+var $spec    = document.getElementById("spectators");
 
 function setHealth(d) {
   if (d.hide) { $hud.classList.remove("on"); return; }
@@ -490,9 +535,54 @@ function setHealth(d) {
   $hud.classList.add("on");
 }
 
-function sizeEsp() { $esp.width = window.innerWidth; $esp.height = window.innerHeight; }
+function sizeEsp() {
+  $esp.width = window.innerWidth; $esp.height = window.innerHeight;
+  $aim.width = window.innerWidth; $aim.height = window.innerHeight;
+}
 window.addEventListener("resize", sizeEsp);
 sizeEsp();
+
+/* ---------- silent-aim FOV circle + lock line ---------- */
+function drawAim(d) {
+  actx.clearRect(0, 0, $aim.width, $aim.height);
+  if (d.hide) return;
+  var W = $aim.width, H = $aim.height, cx = W / 2, cy = H / 2;
+  // FOV circle
+  actx.beginPath();
+  actx.arc(cx, cy, d.fov || 140, 0, Math.PI * 2);
+  actx.strokeStyle = "rgba(0,132,255,.55)"; actx.lineWidth = 1.5;
+  actx.stroke();
+  // line to locked target
+  if (d.tx !== undefined && d.tx !== null) {
+    var tx = d.tx * W, ty = d.ty * H;
+    actx.beginPath(); actx.moveTo(cx, cy); actx.lineTo(tx, ty);
+    actx.strokeStyle = "#ff4d5e"; actx.lineWidth = 1.5; actx.stroke();
+    actx.beginPath(); actx.arc(tx, ty, 4, 0, Math.PI * 2);
+    actx.fillStyle = "#ff4d5e"; actx.fill();
+  }
+}
+
+/* ---------- server stats line ---------- */
+function setServerStats(d) {
+  if (d.hide) { $sstats.classList.add("empty"); return; }
+  var parts = [];
+  if (d.name && d.name.length) parts.push(esc(d.name));
+  if (d.ip && d.ip.length)     parts.push(esc(d.ip));
+  parts.push((d.players || 0) + " players");
+  $sstats.innerHTML = parts.join('<span class="sep">|</span>');
+  $sstats.classList.remove("empty");
+}
+
+/* ---------- spectator alert panel ---------- */
+function setSpectators(list) {
+  if (!list || !list.length) { $spec.classList.add("empty"); $spec.innerHTML = ""; return; }
+  var h = '<div class="head">&#9888; Being Spectated</div>';
+  for (var i = 0; i < list.length; i++) {
+    h += '<div class="srow"><span class="dot"></span>' + esc(list[i]) + "</div>";
+  }
+  $spec.innerHTML = h;
+  $spec.classList.remove("empty");
+}
 
 /* ---------- active keybinds panel (top-right) ---------- */
 function setBinds(list, visible) {
@@ -537,9 +627,9 @@ function drawEsp(players, flags) {
         ectx.beginPath(); ectx.moveTo(s[0] * W, s[1] * H); ectx.lineTo(s[2] * W, s[3] * H); ectx.stroke();
       }
     }
-    if (flags.box) {
+    if ((flags.box && !p.npc) || (flags.npc && p.npc)) {
       ectx.lineWidth = 3; ectx.strokeStyle = "rgba(0,0,0,.6)"; ectx.strokeRect(x, y, w, h);
-      ectx.lineWidth = 1.4; ectx.strokeStyle = "#0084ff"; ectx.strokeRect(x, y, w, h);
+      ectx.lineWidth = 1.4; ectx.strokeStyle = p.npc ? "#e0b020" : "#0084ff"; ectx.strokeRect(x, y, w, h);
     }
     if (flags.health && p.hp !== undefined && p.hp !== null) {
       var bw = 3, bx = x - bw - 3;               // just left of the box
@@ -797,6 +887,18 @@ window.addEventListener("message", function (ev) {
 
     case "esp":
       drawEsp(d.players, d.flags || {});
+      break;
+
+    case "aim":
+      drawAim(d);
+      break;
+
+    case "serverstats":
+      setServerStats(d);
+      break;
+
+    case "spectators":
+      setSpectators(d.list);
       break;
 
     case "health":
