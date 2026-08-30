@@ -507,6 +507,7 @@ var $wm     = document.getElementById("wordmark");
 var $banner = document.getElementById("banner");
 var $freecam = document.getElementById("freecam");
 var $fcopts  = document.getElementById("fc-options");
+var $fccross = document.getElementById("fc-crosshair");
 var $talkers = document.getElementById("talkers");
 var $binds   = document.getElementById("binds");
 var $esp     = document.getElementById("esp");
@@ -870,7 +871,16 @@ window.addEventListener("message", function (ev) {
 
     case "freecam":
       fcShow(d.visible);
-      if (!d.visible) setTalkers([]);
+      if (!d.visible) { setTalkers([]); if ($fccross) $fccross.style.background = "#fff"; }
+      break;
+
+    case "fcCrosshair":
+      if ($fccross) {
+        $fccross.style.background = d.red ? "#ff3b3b" : "#fff";
+        $fccross.style.boxShadow = d.red
+          ? "0 0 0 1px rgba(0,0,0,.85), 0 0 6px rgba(255,59,59,.9)"
+          : "0 0 0 1px rgba(0,0,0,.85)";
+      }
       break;
 
     case "freecamOptions":
