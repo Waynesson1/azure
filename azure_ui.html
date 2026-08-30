@@ -75,6 +75,33 @@ html, body {
   background: var(--accent);
 }
 
+/* Built-in blue "Azure" banner - drawn entirely in CSS/SVG so it needs no
+   network image (remote banners are blocked by the CEF CSP). Selected via the
+   Banner picker value "azure". */
+#banner.azure {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06) 0 25%, transparent 25% 50%, rgba(255,255,255,.05) 50% 75%, transparent 75%),
+    linear-gradient(45deg,  rgba(0,0,0,.10) 0 20%, transparent 20% 55%, rgba(0,0,0,.12) 55% 80%, transparent 80%),
+    radial-gradient(130% 150% at 50% 32%, #1e73f7 0%, #0b52d9 48%, #063aa8 100%);
+}
+#banner.azure .edge { background: var(--accent-lit); }
+#banner.azure #wordmark { display: none; }
+
+#azlogo {
+  position: absolute; inset: 0;
+  display: none; align-items: center; justify-content: center; gap: 14px;
+}
+#banner.azure #azlogo { display: flex; }
+#azlogo svg { width: 48px; height: 48px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+#azlogo .txt { display: flex; flex-direction: column; line-height: 1.02; }
+#azlogo .txt b {
+  color: #fff; font-weight: 800; font-size: 26px; letter-spacing: 2px;
+  text-shadow: 0 1px 6px rgba(0,0,0,.35);
+}
+#azlogo .txt span {
+  color: rgba(255,255,255,.82); font-weight: 500; font-size: 14px; letter-spacing: 3px;
+}
+
 /* ============================ CRUMB ============================ */
 
 #crumb {
@@ -442,6 +469,13 @@ html, body {
 <div id="panel">
   <div id="banner">
     <div id="wordmark">AZURE</div>
+    <div id="azlogo">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <polygon points="24,7 41,41 7,41" fill="#ffffff"></polygon>
+        <polygon points="24,7 31,41 17,41" fill="#0b52d9"></polygon>
+      </svg>
+      <div class="txt"><b>AZURE</b><span>MENU</span></div>
+    </div>
     <div class="edge"></div>
   </div>
 
@@ -678,6 +712,14 @@ function setTalkers(list) {
 }
 
 function applyBanner(url) {
+  $banner.classList.remove("azure");
+  // "azure" = the built-in CSS/SVG banner (no network image needed).
+  if (url === "azure") {
+    $banner.style.backgroundImage = "";
+    $banner.classList.remove("has-img");
+    $banner.classList.add("azure");
+    return;
+  }
   if (url && url.length) {
     $banner.style.backgroundImage = "url('" + url.replace(/'/g, "%27") + "')";
     $banner.classList.add("has-img");
