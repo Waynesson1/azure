@@ -332,26 +332,30 @@ html, body {
   box-shadow: 0 0 0 1px rgba(0,0,0,.85);
 }
 
-/* centered feature scroller (plain white text, no outline, like the ref) */
+/* Centered feature scroller. The selected row sits at the anchor (a bit below
+   screen centre) and the passed rows flow above/below it, fading and shrinking
+   with distance - only ~3 each side are shown. Wrapping keeps it centred. */
 .FCWrapper {
   position: absolute;
-  left: 50%; bottom: 22vh;
-  transform: translateX(-50%);
+  left: 50%; top: 63%;
+  transform: translate(-50%, -50%);
   display: flex; flex-direction: column;
-  align-items: center; justify-content: flex-start;
-  gap: 9px;
+  align-items: center; justify-content: center;
+  gap: 7px;
   font-family: "Inter", sans-serif;
+  pointer-events: none;
 }
 .FCWrapper .Option {
-  font-size: 13px; font-weight: 500;
-  color: rgba(255,255,255,.32);
-  letter-spacing: .2px;
-  transition: color .12s ease;
+  color: #fff; font-weight: 500; letter-spacing: .2px; white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+  transition: opacity .12s ease, transform .12s ease, font-size .12s ease;
 }
-.FCWrapper .Option.Selected {
-  color: #fff;
-  font-weight: 600;
-}
+.FCWrapper .Option.Selected { font-weight: 700; }
+/* distance-from-centre tiers: further back = smaller + fainter */
+.FCWrapper .d0 { font-size: 16px; opacity: 1;    transform: scale(1); }
+.FCWrapper .d1 { font-size: 13px; opacity: .50;  transform: scale(.94); }
+.FCWrapper .d2 { font-size: 12px; opacity: .26;  transform: scale(.88); }
+.FCWrapper .d3 { font-size: 11px; opacity: .12;  transform: scale(.82); }
 
 /* talk indicator (top-center, clear of the keybinds panel) */
 #talkers {
@@ -691,9 +695,19 @@ function drawEsp(players, flags) {
 
 function fcShow(on)   { $freecam.classList.toggle("off", !on); }
 function fcOptions(list, idx) {
+  list = list || [];
+  var n = list.length;
+  if (!n) { $fcopts.innerHTML = ""; return; }
+  // Show up to 3 rows each side of the selected one, wrapping the index so the
+  // selected row is always centred. Clamp the window on short lists so nothing
+  // gets shown twice.
+  var win = Math.min(3, Math.floor((n - 1) / 2));
   var h = "";
-  for (var i = 0; i < (list || []).length; i++) {
-    h += '<div class="Option' + (i === idx ? " Selected" : "") + '">' + esc(list[i]) + "</div>";
+  for (var off = -win; off <= win; off++) {
+    var i = ((idx + off) % n + n) % n;
+    var dist = Math.abs(off);
+    var cls = "Option d" + dist + (off === 0 ? " Selected" : "");
+    h += '<div class="' + cls + '">' + esc(list[i]) + "</div>";
   }
   $fcopts.innerHTML = h;
 }
