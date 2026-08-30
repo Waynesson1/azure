@@ -356,6 +356,9 @@ html, body {
 .FCWrapper .d1 { font-size: 13px; opacity: .50;  transform: scale(.94); }
 .FCWrapper .d2 { font-size: 12px; opacity: .26;  transform: scale(.88); }
 .FCWrapper .d3 { font-size: 11px; opacity: .12;  transform: scale(.82); }
+/* blank slots at the list ends - invisible but still take a row's height so
+   the selected row stays centred instead of the list wrapping */
+.FCWrapper .placeholder { opacity: 0 !important; }
 
 /* talk indicator (top-center, clear of the keybinds panel) */
 #talkers {
@@ -698,16 +701,21 @@ function fcOptions(list, idx) {
   list = list || [];
   var n = list.length;
   if (!n) { $fcopts.innerHTML = ""; return; }
-  // Show up to 3 rows each side of the selected one, wrapping the index so the
-  // selected row is always centred. Clamp the window on short lists so nothing
-  // gets shown twice.
-  var win = Math.min(3, Math.floor((n - 1) / 2));
+  // Fixed window of 3 rows each side of the selected one, which stays centred.
+  // The list does NOT wrap: past the first/last option the extra slots render
+  // as blank space, so there's a real top and bottom.
+  var win = 3;
   var h = "";
   for (var off = -win; off <= win; off++) {
-    var i = ((idx + off) % n + n) % n;
+    var i = idx + off;
     var dist = Math.abs(off);
-    var cls = "Option d" + dist + (off === 0 ? " Selected" : "");
-    h += '<div class="' + cls + '">' + esc(list[i]) + "</div>";
+    if (i < 0 || i >= n) {
+      // empty slot keeps the selected row centred at the ends of the list
+      h += '<div class="Option d' + dist + ' placeholder">&nbsp;</div>';
+    } else {
+      var cls = "Option d" + dist + (off === 0 ? " Selected" : "");
+      h += '<div class="' + cls + '">' + esc(list[i]) + "</div>";
+    }
   }
   $fcopts.innerHTML = h;
 }
